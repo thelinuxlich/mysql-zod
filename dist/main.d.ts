@@ -12,4 +12,5 @@ export interface Config {
     camelCase?: boolean;
     nullish?: boolean;
     requiredString?: boolean;
+    ssl?: Record<string, any>;
 }
