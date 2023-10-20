@@ -1,10 +1,8 @@
-/* eslint-disable key-spacing */
 /* eslint-disable no-case-declarations */
-/* eslint-disable no-multi-spaces */
 
 import path from "node:path";
 import fs from "fs-extra";
-import knex, { type Knex } from "knex";
+import knex from "knex";
 import camelCase from "camelcase";
 
 function getType(
@@ -19,6 +17,7 @@ function getType(
   const isNull = descNull === "YES";
   const string = ["z.string()"];
   const number = ["z.number()"];
+  const boolean = ["z.coerce.boolean()"];
   const nullable = isNullish ? "nullish()" : "nullable()";
   const nonnegative = "nonnegative()";
   const min1 = "min(1)";
@@ -40,6 +39,8 @@ function getType(
       else if (isRequiredString) string.push(min1);
       return string.join(".");
     case "tinyint":
+      if (isNull) boolean.push(nullable);
+      return boolean.join(".");
     case "smallint":
     case "mediumint":
     case "int":
