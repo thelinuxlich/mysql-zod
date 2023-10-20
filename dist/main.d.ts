@@ -12,5 +12,6 @@ export interface Config {
     camelCase?: boolean;
     nullish?: boolean;
     requiredString?: boolean;
+    useDateType?: boolean;
     ssl?: Record<string, any>;
 }

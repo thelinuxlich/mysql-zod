@@ -13,8 +13,10 @@ function getType(
   const isNullish = config.nullish && config.nullish === true;
   const isRequiredString =
     config.requiredString && config.requiredString === true;
+  const isUseDateType = config.useDateType && config.useDateType === true;
   const type = descType.split("(")[0].split(" ")[0];
   const isNull = descNull === "YES";
+  const zDate = ["z.coerce.date()"];
   const string = ["z.string()"];
   const number = ["z.number()"];
   const boolean = ["z.coerce.boolean()"];
@@ -25,6 +27,9 @@ function getType(
     case "date":
     case "datetime":
     case "timestamp":
+      const dateField = isUseDateType ? zDate : string;
+      if (isNull) dateField.push(nullable);
+      return dateField.join(".");
     case "time":
     case "year":
     case "char":
@@ -163,5 +168,6 @@ export interface Config {
   camelCase?: boolean;
   nullish?: boolean;
   requiredString?: boolean;
+  useDateType?: boolean;
   ssl?: Record<string, any>;
 }
