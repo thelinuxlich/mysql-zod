@@ -56,7 +56,9 @@ function getType(
         .replace("enum(", "")
         .replace(")", "")
         .replace(/,/g, ", ");
-      return `z.enum([${value}])`;
+      const field = [`z.enum([${value}])`];
+      if (isNull) field.push(nullable);
+      return field.join(".");
   }
 }
 
