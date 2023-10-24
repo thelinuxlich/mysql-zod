@@ -16,7 +16,7 @@ function getType(
   const isUseDateType = config.useDateType && config.useDateType === true;
   const type = descType.split("(")[0].split(" ")[0];
   const isNull = descNull === "YES";
-  const zDate = ["z.coerce.date()"];
+  const zDate = ["z.string.datetime()"];
   const string = ["z.string()"];
   const number = ["z.number()"];
   const boolean = ["z.coerce.boolean()"];
