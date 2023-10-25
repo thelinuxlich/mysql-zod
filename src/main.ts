@@ -36,11 +36,11 @@ function getType(
 		case 'year':
 		case 'char':
 		case 'varchar':
-			if (isNull) string.push(nullable)
-			else if (isRequiredString) string.push(min1)
 			if (descField.toLowerCase().includes('email')) {
 				string.push(emailField)
 			}
+			if (isNull) string.push(nullable)
+			else if (isRequiredString) string.push(min1)
 			return string.join('.')
 		case 'tinytext':
 		case 'text':
