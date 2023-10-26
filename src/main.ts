@@ -34,20 +34,20 @@ function getType(
 		case 'datetime':
 		case 'timestamp':
 			const dateField = isUseDateType ? zDate : string
-			if (hasDefaultValue && !isGenerated)
-				dateField.push(`default('${descExtra}')`)
 			if (isNull) dateField.push(nullable)
 			else if (hasDefaultValue) dateField.push(optional)
+			if (hasDefaultValue && !isGenerated)
+				dateField.push(`default('${descExtra}')`)
 			return dateField.join('.')
 		case 'time':
 		case 'year':
 		case 'char':
 		case 'varchar':
-			if (hasDefaultValue && !isGenerated)
-				string.push(`default('${descExtra}')`)
 			if (isNull) string.push(nullable)
 			else if (isRequiredString) string.push(min1)
 			else if (hasDefaultValue) string.push(optional)
+			if (hasDefaultValue && !isGenerated)
+				string.push(`default('${descExtra}')`)
 			return string.join('.')
 		case 'tinytext':
 		case 'text':
@@ -55,16 +55,16 @@ function getType(
 		case 'longtext':
 		case 'json':
 		case 'decimal':
-			if (hasDefaultValue && !isGenerated)
-				string.push(`default('${descExtra}')`)
 			if (isNull) string.push(nullable)
 			else if (isRequiredString) string.push(min1)
 			else if (hasDefaultValue) string.push(optional)
+			if (hasDefaultValue && !isGenerated)
+				string.push(`default('${descExtra}')`)
 			return string.join('.')
 		case 'tinyint':
-			if (hasDefaultValue && !isGenerated) boolean.push(`default(${descExtra})`)
 			if (isNull) boolean.push(nullable)
 			else if (hasDefaultValue) boolean.push(optional)
+			if (hasDefaultValue && !isGenerated) boolean.push(`default(${descExtra})`)
 			return boolean.join('.')
 		case 'smallint':
 		case 'mediumint':
@@ -74,9 +74,10 @@ function getType(
 		case 'double':
 			const unsigned = descType.endsWith(' unsigned')
 			if (unsigned) number.push(nonnegative)
-			if (hasDefaultValue && !isGenerated) number.push(`default(${descExtra})`)
+
 			if (isNull) number.push(nullable)
 			else if (hasDefaultValue) number.push(optional)
+			if (hasDefaultValue && !isGenerated) number.push(`default(${descExtra})`)
 			return number.join('.')
 		case 'enum':
 			const value = descType
@@ -84,9 +85,9 @@ function getType(
 				.replace(')', '')
 				.replace(/,/g, ', ')
 			const field = [`z.enum([${value}])`]
-			if (hasDefaultValue && !isGenerated) field.push(`default('${descExtra}')`)
 			if (isNull) field.push(nullable)
 			else if (hasDefaultValue) field.push(optional)
+			if (hasDefaultValue && !isGenerated) field.push(`default('${descExtra}')`)
 			return field.join('.')
 	}
 }
