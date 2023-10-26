@@ -100,7 +100,7 @@ export async function generate(config: Config) {
 			user: config.user,
 			password: config.password,
 			database: config.database,
-			ssl: config.ssl ?? {},
+			ssl: config.ssl,
 		},
 	})
 
