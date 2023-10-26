@@ -65,7 +65,7 @@ function getType(
 			if (isNull) boolean.push(nullable)
 			else if (hasDefaultValue) boolean.push(optional)
 			if (hasDefaultValue && !isGenerated)
-				boolean.push(`default(${descDefault})`)
+				boolean.push(`default(${Boolean(+descDefault)})`)
 			return boolean.join('.')
 		case 'smallint':
 		case 'mediumint':
