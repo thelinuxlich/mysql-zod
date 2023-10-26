@@ -7,11 +7,15 @@ import knex from 'knex'
 
 function getType(
 	descType: Desc['Type'],
-	descField: string,
+	descField: Desc['Field'],
+	descDefault: Desc['Default'],
+	descExtra: Desc['Extra'],
 	descNull: Desc['Null'],
 	config: Config,
 ) {
 	const isNullish = config.nullish && config.nullish === true
+	const hasDefaultValue = descDefault !== null
+	const isGenerated = descExtra.includes('DEFAULT_GENERATED')
 	const isRequiredString =
 		config.requiredString && config.requiredString === true
 	const isUseDateType = config.useDateType && config.useDateType === true
@@ -22,6 +26,7 @@ function getType(
 	const number = ['z.number()']
 	const boolean = ['z.boolean()']
 	const nullable = isNullish ? 'nullish()' : 'nullable()'
+	const optional = 'optional()'
 	const emailField = 'email()'
 	const nonnegative = 'nonnegative()'
 	const min1 = 'min(1)'
@@ -30,7 +35,10 @@ function getType(
 		case 'datetime':
 		case 'timestamp':
 			const dateField = isUseDateType ? zDate : string
+			if (hasDefaultValue && !isGenerated)
+				dateField.push(`default('${descExtra}')`)
 			if (isNull) dateField.push(nullable)
+			else if (hasDefaultValue) dateField.push(optional)
 			return dateField.join('.')
 		case 'time':
 		case 'year':
@@ -39,8 +47,11 @@ function getType(
 			if (descField.toLowerCase().includes('email')) {
 				string.push(emailField)
 			}
+			if (hasDefaultValue && !isGenerated)
+				string.push(`default('${descExtra}')`)
 			if (isNull) string.push(nullable)
 			else if (isRequiredString) string.push(min1)
+			else if (hasDefaultValue) string.push(optional)
 			return string.join('.')
 		case 'tinytext':
 		case 'text':
@@ -48,11 +59,16 @@ function getType(
 		case 'longtext':
 		case 'json':
 		case 'decimal':
+			if (hasDefaultValue && !isGenerated)
+				string.push(`default('${descExtra}')`)
 			if (isNull) string.push(nullable)
 			else if (isRequiredString) string.push(min1)
+			else if (hasDefaultValue) string.push(optional)
 			return string.join('.')
 		case 'tinyint':
+			if (hasDefaultValue && !isGenerated) boolean.push(`default(${descExtra})`)
 			if (isNull) boolean.push(nullable)
+			else if (hasDefaultValue) boolean.push(optional)
 			return boolean.join('.')
 		case 'smallint':
 		case 'mediumint':
@@ -62,7 +78,9 @@ function getType(
 		case 'double':
 			const unsigned = descType.endsWith(' unsigned')
 			if (unsigned) number.push(nonnegative)
+			if (hasDefaultValue && !isGenerated) number.push(`default(${descExtra})`)
 			if (isNull) number.push(nullable)
+			else if (hasDefaultValue) number.push(optional)
 			return number.join('.')
 		case 'enum':
 			const value = descType
@@ -70,7 +88,9 @@ function getType(
 				.replace(')', '')
 				.replace(/,/g, ', ')
 			const field = [`z.enum([${value}])`]
+			if (hasDefaultValue && !isGenerated) field.push(`default('${descExtra}')`)
 			if (isNull) field.push(nullable)
+			else if (hasDefaultValue) field.push(optional)
 			return field.join('.')
 	}
 }
@@ -135,7 +155,14 @@ export async function generate(config: Config) {
 export const ${table} = z.object({`
 		for (const desc of describes) {
 			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
-			const type = getType(desc.Type, desc.Field, desc.Null, config)
+			const type = getType(
+				desc.Type,
+				desc.Field,
+				desc.Default,
+				desc.Extra,
+				desc.Null,
+				config,
+			)
 			content = `${content}
   ${field}: ${type},`
 		}
@@ -159,6 +186,8 @@ export type ${camelCase(`${table}Type`)} = z.infer<typeof ${table}>
 type Tables = string[]
 interface Desc {
 	Field: string
+	Default: string | null
+	Extra: string
 	Type: string
 	Null: 'YES' | 'NO'
 }
