@@ -37,7 +37,7 @@ function getType(
 			if (isNull) dateField.push(nullable)
 			else if (hasDefaultValue) dateField.push(optional)
 			if (hasDefaultValue && !isGenerated)
-				dateField.push(`default('${descExtra}')`)
+				dateField.push(`default('${descDefault}')`)
 			return dateField.join('.')
 		case 'time':
 		case 'year':
@@ -47,7 +47,7 @@ function getType(
 			else if (isRequiredString) string.push(min1)
 			else if (hasDefaultValue) string.push(optional)
 			if (hasDefaultValue && !isGenerated)
-				string.push(`default('${descExtra}')`)
+				string.push(`default('${descDefault}')`)
 			return string.join('.')
 		case 'tinytext':
 		case 'text':
@@ -59,12 +59,13 @@ function getType(
 			else if (isRequiredString) string.push(min1)
 			else if (hasDefaultValue) string.push(optional)
 			if (hasDefaultValue && !isGenerated)
-				string.push(`default('${descExtra}')`)
+				string.push(`default('${descDefault}')`)
 			return string.join('.')
 		case 'tinyint':
 			if (isNull) boolean.push(nullable)
 			else if (hasDefaultValue) boolean.push(optional)
-			if (hasDefaultValue && !isGenerated) boolean.push(`default(${descExtra})`)
+			if (hasDefaultValue && !isGenerated)
+				boolean.push(`default(${descDefault})`)
 			return boolean.join('.')
 		case 'smallint':
 		case 'mediumint':
@@ -77,7 +78,8 @@ function getType(
 
 			if (isNull) number.push(nullable)
 			else if (hasDefaultValue) number.push(optional)
-			if (hasDefaultValue && !isGenerated) number.push(`default(${descExtra})`)
+			if (hasDefaultValue && !isGenerated)
+				number.push(`default(${descDefault})`)
 			return number.join('.')
 		case 'enum':
 			const value = descType
@@ -87,7 +89,8 @@ function getType(
 			const field = [`z.enum([${value}])`]
 			if (isNull) field.push(nullable)
 			else if (hasDefaultValue) field.push(optional)
-			if (hasDefaultValue && !isGenerated) field.push(`default('${descExtra}')`)
+			if (hasDefaultValue && !isGenerated)
+				field.push(`default('${descDefault}')`)
 			return field.join('.')
 	}
 }
