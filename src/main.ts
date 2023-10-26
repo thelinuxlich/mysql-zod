@@ -27,7 +27,6 @@ function getType(
 	const boolean = ['z.boolean()']
 	const nullable = isNullish ? 'nullish()' : 'nullable()'
 	const optional = 'optional()'
-	const emailField = 'email()'
 	const nonnegative = 'nonnegative()'
 	const min1 = 'min(1)'
 	switch (type) {
@@ -44,9 +43,6 @@ function getType(
 		case 'year':
 		case 'char':
 		case 'varchar':
-			if (descField.toLowerCase().includes('email')) {
-				string.push(emailField)
-			}
 			if (hasDefaultValue && !isGenerated)
 				string.push(`default('${descExtra}')`)
 			if (isNull) string.push(nullable)
