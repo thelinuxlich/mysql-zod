@@ -20,7 +20,7 @@ function getType(
 		descExtra,
 	)
 	const isNull = descNull === 'YES'
-	if (isGenerated && !isNull && ['table', 'selectable'].includes(op)) return
+	if (isGenerated && !isNull && ['selectable'].includes(op)) return
 	const isRequiredString =
 		config.requiredString && config.requiredString === true
 	const isUseDateType = config.useDateType && config.useDateType === true
