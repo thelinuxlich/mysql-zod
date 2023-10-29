@@ -6,6 +6,7 @@ import fs from 'fs-extra'
 import knex from 'knex'
 
 function getType(
+	op: 'table' | 'insertable' | 'updateable' | 'selectable',
 	descType: Desc['Type'],
 	descField: Desc['Field'],
 	descDefault: Desc['Default'],
@@ -14,22 +15,24 @@ function getType(
 	config: Config,
 ) {
 	const isNullish = config.nullish && config.nullish === true
-	const hasDefaultValue = descDefault !== null
+	const hasDefaultValue = descDefault !== null && op !== 'selectable'
 	const isGenerated = descExtra.includes('DEFAULT_GENERATED')
+	const isNull = descNull === 'YES'
+	if (isGenerated && !isNull && ['table', 'selectable'].includes(op)) return
 	const isRequiredString =
 		config.requiredString && config.requiredString === true
 	const isUseDateType = config.useDateType && config.useDateType === true
 	const type = descType.split('(')[0].split(' ')[0]
-	const isNull = descNull === 'YES'
 	const zDate = [
 		'z.union([z.number(), z.string(), z.date()]).pipe(z.coerce.date())',
 	]
 	const string = ['z.string()']
 	const number = ['z.number()']
 	const boolean = ['z.boolean()']
-	const nullable = isNullish ? 'nullish()' : 'nullable()'
+	const nullable = isNullish && op !== 'selectable' ? 'nullish()' : 'nullable()'
 	const optional = 'optional()'
 	const nonnegative = 'nonnegative()'
+	const isUpdateableFormat = op === 'updateable' && !isNull
 	const min1 = 'min(1)'
 	switch (type) {
 		case 'date':
@@ -40,6 +43,7 @@ function getType(
 			else if (hasDefaultValue) dateField.push(optional)
 			if (hasDefaultValue && !isGenerated)
 				dateField.push(`default('${descDefault}')`)
+			if (isUpdateableFormat) dateField.push(optional)
 			return dateField.join('.')
 		case 'time':
 		case 'year':
@@ -50,6 +54,7 @@ function getType(
 			else if (hasDefaultValue) string.push(optional)
 			if (hasDefaultValue && !isGenerated)
 				string.push(`default('${descDefault}')`)
+			if (isUpdateableFormat) string.push(optional)
 			return string.join('.')
 		case 'tinytext':
 		case 'text':
@@ -62,12 +67,14 @@ function getType(
 			else if (hasDefaultValue) string.push(optional)
 			if (hasDefaultValue && !isGenerated)
 				string.push(`default('${descDefault}')`)
+			if (isUpdateableFormat) string.push(optional)
 			return string.join('.')
 		case 'tinyint':
 			if (isNull) boolean.push(nullable)
 			else if (hasDefaultValue) boolean.push(optional)
 			if (hasDefaultValue && !isGenerated)
 				boolean.push(`default(${Boolean(+descDefault)})`)
+			if (isUpdateableFormat) boolean.push(optional)
 			return boolean.join('.')
 		case 'smallint':
 		case 'mediumint':
@@ -82,6 +89,7 @@ function getType(
 			else if (hasDefaultValue) number.push(optional)
 			if (hasDefaultValue && !isGenerated)
 				number.push(`default(${descDefault})`)
+			if (isUpdateableFormat) number.push(optional)
 			return number.join('.')
 		case 'enum':
 			const value = descType
@@ -93,6 +101,7 @@ function getType(
 			else if (hasDefaultValue) field.push(optional)
 			if (hasDefaultValue && !isGenerated)
 				field.push(`default('${descDefault}')`)
+			if (isUpdateableFormat) field.push(optional)
 			return field.join('.')
 	}
 }
@@ -158,6 +167,7 @@ export const ${table} = z.object({`
 		for (const desc of describes) {
 			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
 			const type = getType(
+				'table',
 				desc.Type,
 				desc.Field,
 				desc.Default,
@@ -165,13 +175,84 @@ export const ${table} = z.object({`
 				desc.Null,
 				config,
 			)
-			content = `${content}
+			if (type) {
+				content = `${content}
+	${field}: ${type},`
+			}
+		}
+		content = `${content}
+})
+
+export const insertable_${table} = z.object({`
+		for (const desc of describes) {
+			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
+			const type = getType(
+				'insertable',
+				desc.Type,
+				desc.Field,
+				desc.Default,
+				desc.Extra,
+				desc.Null,
+				config,
+			)
+			if (type) {
+				content = `${content}
   ${field}: ${type},`
+			}
+		}
+		content = `${content}
+})
+
+export const updateable_${table} = z.object({`
+		for (const desc of describes) {
+			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
+			const type = getType(
+				'updateable',
+				desc.Type,
+				desc.Field,
+				desc.Default,
+				desc.Extra,
+				desc.Null,
+				config,
+			)
+			if (type) {
+				content = `${content}
+  ${field}: ${type},`
+			}
+		}
+		content = `${content}
+})
+
+export const selectable_${table} = z.object({`
+		for (const desc of describes) {
+			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
+			const type = getType(
+				'selectable',
+				desc.Type,
+				desc.Field,
+				desc.Default,
+				desc.Extra,
+				desc.Null,
+				config,
+			)
+			if (type) {
+				content = `${content}
+  ${field}: ${type},`
+			}
 		}
 		content = `${content}
 })
 
 export type ${camelCase(`${table}Type`)} = z.infer<typeof ${table}>
+export type Insertable${camelCase(
+			`${table}Type`,
+		)} = z.infer<typeof insertable_${table}>
+export type Updateable${camelCase(
+			`${table}Type`,
+		)} = z.infer<typeof updateable_${table}>
+export type Selectable${camelCase(
+			`${table}Type`,
+		)} = z.infer<typeof selectable_${table}>
 `
 		const dir = config.folder && config.folder !== '' ? config.folder : '.'
 		const file =
