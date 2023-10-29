@@ -246,16 +246,18 @@ export const selectable_${table} = z.object({`
 		content = `${content}
 })
 
-export type ${camelCase(`${table}Type`)} = z.infer<typeof ${table}>
-export type Insertable${camelCase(
-			`${table}Type`,
-		)} = z.infer<typeof insertable_${table}>
-export type Updateable${camelCase(
-			`${table}Type`,
-		)} = z.infer<typeof updateable_${table}>
-export type Selectable${camelCase(
-			`${table}Type`,
-		)} = z.infer<typeof selectable_${table}>
+export type ${camelCase(`${table}Type`, {
+			pascalCase: true,
+		})} = z.infer<typeof ${table}>
+export type Insertable${camelCase(`${table}Type`, {
+			pascalCase: true,
+		})} = z.infer<typeof insertable_${table}>
+export type Updateable${camelCase(`${table}Type`, {
+			pascalCase: true,
+		})} = z.infer<typeof updateable_${table}>
+export type Selectable${camelCase(`${table}Type`, {
+			pascalCase: true,
+		})} = z.infer<typeof selectable_${table}>
 `
 		const dir = config.folder && config.folder !== '' ? config.folder : '.'
 		const file =
