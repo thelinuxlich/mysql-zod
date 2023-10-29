@@ -21,7 +21,9 @@ function getType(
 	const isUseDateType = config.useDateType && config.useDateType === true
 	const type = descType.split('(')[0].split(' ')[0]
 	const isNull = descNull === 'YES'
-	const zDate = ['z.coerce.string().pipe(z.coerce.date())']
+	const zDate = [
+		'z.union([z.number(), z.string(), z.date()]).pipe(z.coerce.date())',
+	]
 	const string = ['z.string()']
 	const number = ['z.number()']
 	const boolean = ['z.boolean()']
