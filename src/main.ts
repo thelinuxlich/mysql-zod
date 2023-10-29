@@ -16,7 +16,9 @@ function getType(
 ) {
 	const isNullish = config.nullish && config.nullish === true
 	const hasDefaultValue = descDefault !== null && op !== 'selectable'
-	const isGenerated = descExtra.includes('DEFAULT_GENERATED')
+	const isGenerated = ['DEFAULT_GENERATED', 'auto_increment'].includes(
+		descExtra,
+	)
 	const isNull = descNull === 'YES'
 	if (isGenerated && !isNull && ['table', 'selectable'].includes(op)) return
 	const isRequiredString =
