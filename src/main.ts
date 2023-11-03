@@ -31,7 +31,9 @@ function getType(
 	]
 	const string = ['z.string()']
 	const number = ['z.number()']
-	const boolean = ['z.boolean()']
+	const boolean = [
+		'z.union([z.number(),z.string(),z.boolean()]).pipe(z.coerce.boolean())',
+	]
 	const nullable = isNullish && op !== 'selectable' ? 'nullish()' : 'nullable()'
 	const optional = 'optional()'
 	const nonnegative = 'nonnegative()'
