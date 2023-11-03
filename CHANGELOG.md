@@ -1,3 +1,14 @@
+3.0.0
+  - Add `useDateType` option
+  - Add `overrideTypes` option
+  - Add `ssl` option
+  - Better boolean zod schema
+  - Better date-like zod schema
+  - Refactored the code a lot to make TS happy
+  - Add insertable, updateable and selectable schemas/types
+  - Add default values when the field has it
+  - Fix for nullable enum fields
+
 2.2.0
   - Support ignoring tables with RegExp
 

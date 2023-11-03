@@ -34,80 +34,93 @@ function getType(
 	const boolean = [
 		'z.union([z.number(),z.string(),z.boolean()]).pipe(z.coerce.boolean())',
 	]
+	const dateField = isUseDateType ? zDate : string
 	const nullable = isNullish && op !== 'selectable' ? 'nullish()' : 'nullable()'
 	const optional = 'optional()'
 	const nonnegative = 'nonnegative()'
-	const isUpdateableFormat = op === 'updateable' && !isNull
+	const isUpdateableFormat = op === 'updateable' && !isNull && !hasDefaultValue
 	const min1 = 'min(1)'
+	const typeOverride = config.overrideTypes?.[type as ValidTypes]
+	const generateDateLikeField = (type: string) => {
+		const field = typeOverride ? [typeOverride] : dateField
+		if (isNull) field.push(nullable)
+		else if (hasDefaultValue) field.push(optional)
+		if (hasDefaultValue && !isGenerated) field.push(`default('${descDefault}')`)
+		if (isUpdateableFormat) field.push(optional)
+		return field.join('.')
+	}
+	const generateStringLikeField = (type: string) => {
+		const field = typeOverride ? [typeOverride] : string
+		if (isNull) field.push(nullable)
+		else if (isRequiredString) field.push(min1)
+		else if (hasDefaultValue) field.push(optional)
+		if (hasDefaultValue && !isGenerated) field.push(`default('${descDefault}')`)
+		if (isUpdateableFormat) field.push(optional)
+		return field.join('.')
+	}
+	const generateBooleanLikeField = (type: string) => {
+		const field = typeOverride ? [typeOverride] : boolean
+		if (isNull) field.push(nullable)
+		else if (hasDefaultValue) field.push(optional)
+		if (hasDefaultValue && !isGenerated)
+			field.push(`default(${Boolean(+descDefault)})`)
+		if (isUpdateableFormat) field.push(optional)
+		return field.join('.')
+	}
+	const generateNumberLikeField = (type: string) => {
+		const unsigned = descType.endsWith(' unsigned')
+		const field = typeOverride ? [typeOverride] : number
+		if (unsigned) field.push(nonnegative)
+		if (isNull) field.push(nullable)
+		else if (hasDefaultValue) field.push(optional)
+		if (hasDefaultValue && !isGenerated) field.push(`default(${descDefault})`)
+		if (isUpdateableFormat) field.push(optional)
+		return field.join('.')
+	}
+	const generateEnumLikeField = (type: string) => {
+		const value = descType
+			.replace('enum(', '')
+			.replace(')', '')
+			.replace(/,/g, ', ')
+		const field = [`z.enum([${value}])`]
+		if (isNull) field.push(nullable)
+		else if (hasDefaultValue) field.push(optional)
+		if (hasDefaultValue && !isGenerated) field.push(`default('${descDefault}')`)
+		if (isUpdateableFormat) field.push(optional)
+		return field.join('.')
+	}
 	switch (type) {
 		case 'date':
 		case 'datetime':
-		case 'timestamp':
-			const dateField = isUseDateType ? zDate : string
-			if (isNull) dateField.push(nullable)
-			else if (hasDefaultValue) dateField.push(optional)
-			if (hasDefaultValue && !isGenerated)
-				dateField.push(`default('${descDefault}')`)
-			if (isUpdateableFormat) dateField.push(optional)
-			return dateField.join('.')
-		case 'time':
-		case 'year':
-		case 'char':
-		case 'varchar':
-			if (isNull) string.push(nullable)
-			else if (isRequiredString) string.push(min1)
-			else if (hasDefaultValue) string.push(optional)
-			if (hasDefaultValue && !isGenerated)
-				string.push(`default('${descDefault}')`)
-			if (isUpdateableFormat) string.push(optional)
-			return string.join('.')
+		case 'timestamp': {
+			return generateDateLikeField(type)
+		}
 		case 'tinytext':
 		case 'text':
 		case 'mediumtext':
 		case 'longtext':
 		case 'json':
 		case 'decimal':
-			if (isNull) string.push(nullable)
-			else if (isRequiredString) string.push(min1)
-			else if (hasDefaultValue) string.push(optional)
-			if (hasDefaultValue && !isGenerated)
-				string.push(`default('${descDefault}')`)
-			if (isUpdateableFormat) string.push(optional)
-			return string.join('.')
-		case 'tinyint':
-			if (isNull) boolean.push(nullable)
-			else if (hasDefaultValue) boolean.push(optional)
-			if (hasDefaultValue && !isGenerated)
-				boolean.push(`default(${Boolean(+descDefault)})`)
-			if (isUpdateableFormat) boolean.push(optional)
-			return boolean.join('.')
+		case 'time':
+		case 'year':
+		case 'char':
+		case 'varchar': {
+			return generateStringLikeField(type)
+		}
+		case 'tinyint': {
+			return generateBooleanLikeField(type)
+		}
 		case 'smallint':
 		case 'mediumint':
 		case 'int':
 		case 'bigint':
 		case 'float':
-		case 'double':
-			const unsigned = descType.endsWith(' unsigned')
-			if (unsigned) number.push(nonnegative)
-
-			if (isNull) number.push(nullable)
-			else if (hasDefaultValue) number.push(optional)
-			if (hasDefaultValue && !isGenerated)
-				number.push(`default(${descDefault})`)
-			if (isUpdateableFormat) number.push(optional)
-			return number.join('.')
-		case 'enum':
-			const value = descType
-				.replace('enum(', '')
-				.replace(')', '')
-				.replace(/,/g, ', ')
-			const field = [`z.enum([${value}])`]
-			if (isNull) field.push(nullable)
-			else if (hasDefaultValue) field.push(optional)
-			if (hasDefaultValue && !isGenerated)
-				field.push(`default('${descDefault}')`)
-			if (isUpdateableFormat) field.push(optional)
-			return field.join('.')
+		case 'double': {
+			return generateNumberLikeField(type)
+		}
+		case 'enum': {
+			return generateEnumLikeField(type)
+		}
 	}
 }
 
@@ -126,17 +139,17 @@ export async function generate(config: Config) {
 
 	const isCamelCase = config.camelCase && config.camelCase === true
 
-	const t = await db.raw(
+	const t: { table_name: string }[][] = await db.raw(
 		'SELECT table_name as table_name FROM information_schema.tables WHERE table_schema = ?',
 		[config.database],
 	)
 	let tables = t[0]
-		.map((row: any) => row.table_name)
+		.map((row) => row.table_name)
 		.filter((table: string) => !table.startsWith('knex_'))
 		.sort() as Tables
 
 	const includedTables = config.tables
-	if (includedTables && includedTables.length)
+	if (includedTables?.length)
 		tables = tables.filter((table) => includedTables.includes(table))
 
 	const allIgnoredTables = config.ignore
@@ -148,16 +161,16 @@ export async function generate(config: Config) {
 		(table) => !ignoredTablesRegex?.includes(table),
 	)
 
-	if (ignoredTableNames && ignoredTableNames.length)
+	if (ignoredTableNames?.length)
 		tables = tables.filter((table) => !ignoredTableNames.includes(table))
 
-	if (ignoredTablesRegex && ignoredTablesRegex.length) {
+	if (ignoredTablesRegex?.length) {
 		tables = tables.filter((table) => {
 			let useTable = true
-			ignoredTablesRegex.forEach((text) => {
+			for (const text of ignoredTablesRegex) {
 				const pattern = text.substring(1, text.length - 1)
 				if (table.match(pattern) !== null) useTable = false
-			})
+			}
 			return useTable
 		})
 	}
@@ -273,6 +286,28 @@ export type Selectable${camelCase(`${table}Type`, {
 	await db.destroy()
 }
 
+type ValidTypes =
+	| 'date'
+	| 'datetime'
+	| 'timestamp'
+	| 'time'
+	| 'year'
+	| 'char'
+	| 'varchar'
+	| 'tinytext'
+	| 'text'
+	| 'mediumtext'
+	| 'longtext'
+	| 'json'
+	| 'decimal'
+	| 'tinyint'
+	| 'smallint'
+	| 'mediumint'
+	| 'int'
+	| 'bigint'
+	| 'float'
+	| 'double'
+
 type Tables = string[]
 interface Desc {
 	Field: string
@@ -295,5 +330,7 @@ export interface Config {
 	nullish?: boolean
 	requiredString?: boolean
 	useDateType?: boolean
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	ssl?: Record<string, any>
+	overrideTypes?: Record<ValidTypes, string>
 }

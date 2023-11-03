@@ -57,7 +57,35 @@ export const user = z.object({
   role: z.enum(['admin', 'user']),
 })
 
+export const insertable_user = z.object({
+  name: z.string(),
+  username: z.string(),
+  password: z.string(),
+  profile_picture: z.string().nullable(),
+  role: z.enum(['admin', 'user']),
+})
+
+export const updateable_user = z.object({
+  name: z.string(),
+  username: z.string(),
+  password: z.string(),
+  profile_picture: z.string().nullable(),
+  role: z.enum(['admin', 'user']),
+})
+
+export const selectable_user = z.object({
+  id: z.number().nonnegative(),
+  name: z.string(),
+  username: z.string(),
+  password: z.string(),
+  profile_picture: z.string().nullable(),
+  role: z.enum(['admin', 'user']),
+})
+
 export type userType = z.infer<typeof user>
+export type InsertableUserType = z.infer<typeof insertable_user>
+export type UpdateableUserType = z.infer<typeof updateable_user>
+export type SelectableUserType = z.infer<typeof selectable_user>
 ```
 
 You can also use the mysql-zod API programmatically:
@@ -89,7 +117,16 @@ await generate({
   "suffix": "table",
   "camelCase": false,
   "nullish": false,
-  "requiredString": false
+  "requiredString": false,
+  "ssl": {
+    "ca": "path/to/ca.pem",
+    "cert": "path/to/cert.pem",
+    "key": "path/to/key.pem"
+  },
+  "useDateType": false,
+  "overrideTypes": {
+    "tinyint": "z.boolean()"
+  }
 }
 ```
 
@@ -102,3 +139,6 @@ await generate({
 | camelCase | Convert all table names and their properties to camelcase. (eg: `profile_picture` becomes `profilePicture`) |
 | nullish | Set schema as `nullish` instead of `nullable` |
 | requiredString | Add `min(1)` for string schema |
+| ssl | SSL credentials to use when connecting to server. |
+| useDateType | Use a specialized Zod type for date-like fields instead of string
+| overrideTypes | Override zod types for specific field types |
