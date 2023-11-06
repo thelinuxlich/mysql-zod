@@ -7,25 +7,20 @@ import knex from 'knex'
 
 function getType(
 	op: 'table' | 'insertable' | 'updateable' | 'selectable',
-	descType: Desc['Type'],
-	descField: Desc['Field'],
-	descDefault: Desc['Default'],
-	descExtra: Desc['Extra'],
-	descNull: Desc['Null'],
+	desc: Desc,
 	config: Config,
 ) {
+	const { Default, Extra, Null, Type } = desc
 	const isNullish = config.nullish && config.nullish === true
-	const hasDefaultValue = descDefault !== null && op !== 'selectable'
-	const isGenerated = ['DEFAULT_GENERATED', 'auto_increment'].includes(
-		descExtra,
-	)
-	const isNull = descNull === 'YES'
+	const hasDefaultValue = Default !== null && op !== 'selectable'
+	const isGenerated = ['DEFAULT_GENERATED', 'auto_increment'].includes(Extra)
+	const isNull = Null === 'YES'
 	if (isGenerated && !isNull && ['insertable', 'updateable'].includes(op))
 		return
 	const isRequiredString =
 		config.requiredString && config.requiredString === true
 	const isUseDateType = config.useDateType && config.useDateType === true
-	const type = descType.split('(')[0].split(' ')[0]
+	const type = Type.split('(')[0].split(' ')[0]
 	const zDate = [
 		'z.union([z.number(), z.string(), z.date()]).pipe(z.coerce.date())',
 	]
@@ -45,7 +40,7 @@ function getType(
 		const field = typeOverride ? [typeOverride] : dateField
 		if (isNull) field.push(nullable)
 		else if (hasDefaultValue) field.push(optional)
-		if (hasDefaultValue && !isGenerated) field.push(`default('${descDefault}')`)
+		if (hasDefaultValue && !isGenerated) field.push(`default('${Default}')`)
 		if (isUpdateableFormat) field.push(optional)
 		return field.join('.')
 	}
@@ -54,7 +49,7 @@ function getType(
 		if (isNull) field.push(nullable)
 		else if (isRequiredString) field.push(min1)
 		else if (hasDefaultValue) field.push(optional)
-		if (hasDefaultValue && !isGenerated) field.push(`default('${descDefault}')`)
+		if (hasDefaultValue && !isGenerated) field.push(`default('${Default}')`)
 		if (isUpdateableFormat) field.push(optional)
 		return field.join('.')
 	}
@@ -63,29 +58,26 @@ function getType(
 		if (isNull) field.push(nullable)
 		else if (hasDefaultValue) field.push(optional)
 		if (hasDefaultValue && !isGenerated)
-			field.push(`default(${Boolean(+descDefault)})`)
+			field.push(`default(${Boolean(+Default)})`)
 		if (isUpdateableFormat) field.push(optional)
 		return field.join('.')
 	}
 	const generateNumberLikeField = (type: string) => {
-		const unsigned = descType.endsWith(' unsigned')
+		const unsigned = Type.endsWith(' unsigned')
 		const field = typeOverride ? [typeOverride] : number
 		if (unsigned) field.push(nonnegative)
 		if (isNull) field.push(nullable)
 		else if (hasDefaultValue) field.push(optional)
-		if (hasDefaultValue && !isGenerated) field.push(`default(${descDefault})`)
+		if (hasDefaultValue && !isGenerated) field.push(`default(${Default})`)
 		if (isUpdateableFormat) field.push(optional)
 		return field.join('.')
 	}
 	const generateEnumLikeField = (type: string) => {
-		const value = descType
-			.replace('enum(', '')
-			.replace(')', '')
-			.replace(/,/g, ', ')
+		const value = Type.replace('enum(', '').replace(')', '').replace(/,/g, ', ')
 		const field = [`z.enum([${value}])`]
 		if (isNull) field.push(nullable)
 		else if (hasDefaultValue) field.push(optional)
-		if (hasDefaultValue && !isGenerated) field.push(`default('${descDefault}')`)
+		if (hasDefaultValue && !isGenerated) field.push(`default('${Default}')`)
 		if (isUpdateableFormat) field.push(optional)
 		return field.join('.')
 	}
@@ -143,10 +135,7 @@ export async function generate(config: Config) {
 		'SELECT table_name as table_name FROM information_schema.tables WHERE table_schema = ?',
 		[config.database],
 	)
-	let tables = t[0]
-		.map((row) => row.table_name)
-		.filter((table: string) => !table.startsWith('knex_'))
-		.sort() as Tables
+	let tables = t[0].map((row) => row.table_name).sort()
 
 	const includedTables = config.tables
 	if (includedTables?.length)
@@ -154,13 +143,11 @@ export async function generate(config: Config) {
 
 	const allIgnoredTables = config.ignore
 	const ignoredTablesRegex = allIgnoredTables?.filter((ignoreString) => {
-		const isPattern = ignoreString.startsWith('/') && ignoreString.endsWith('/')
-		return isPattern
+		return ignoreString.startsWith('/') && ignoreString.endsWith('/')
 	})
 	const ignoredTableNames = allIgnoredTables?.filter(
 		(table) => !ignoredTablesRegex?.includes(table),
 	)
-
 	if (ignoredTableNames?.length)
 		tables = tables.filter((table) => !ignoredTableNames.includes(table))
 
@@ -184,15 +171,7 @@ export async function generate(config: Config) {
 export const ${table} = z.object({`
 		for (const desc of describes) {
 			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
-			const type = getType(
-				'table',
-				desc.Type,
-				desc.Field,
-				desc.Default,
-				desc.Extra,
-				desc.Null,
-				config,
-			)
+			const type = getType('table', desc, config)
 			if (type) {
 				content = `${content}
 	${field}: ${type},`
@@ -204,15 +183,7 @@ export const ${table} = z.object({`
 export const insertable_${table} = z.object({`
 		for (const desc of describes) {
 			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
-			const type = getType(
-				'insertable',
-				desc.Type,
-				desc.Field,
-				desc.Default,
-				desc.Extra,
-				desc.Null,
-				config,
-			)
+			const type = getType('insertable', desc, config)
 			if (type) {
 				content = `${content}
   ${field}: ${type},`
@@ -224,15 +195,7 @@ export const insertable_${table} = z.object({`
 export const updateable_${table} = z.object({`
 		for (const desc of describes) {
 			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
-			const type = getType(
-				'updateable',
-				desc.Type,
-				desc.Field,
-				desc.Default,
-				desc.Extra,
-				desc.Null,
-				config,
-			)
+			const type = getType('updateable', desc, config)
 			if (type) {
 				content = `${content}
   ${field}: ${type},`
@@ -244,15 +207,7 @@ export const updateable_${table} = z.object({`
 export const selectable_${table} = z.object({`
 		for (const desc of describes) {
 			const field = isCamelCase ? camelCase(desc.Field) : desc.Field
-			const type = getType(
-				'selectable',
-				desc.Type,
-				desc.Field,
-				desc.Default,
-				desc.Extra,
-				desc.Null,
-				config,
-			)
+			const type = getType('selectable', desc, config)
 			if (type) {
 				content = `${content}
   ${field}: ${type},`
@@ -308,7 +263,6 @@ type ValidTypes =
 	| 'float'
 	| 'double'
 
-type Tables = string[]
 interface Desc {
 	Field: string
 	Default: string | null

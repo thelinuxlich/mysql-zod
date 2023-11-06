@@ -1,32 +1,26 @@
 {
-	"name": "mysql-zod",
+	"name": "zod-mysql",
 	"type": "module",
-	"version": "2.2.0",
+	"version": "3.0.0",
 	"description": "Generate Zod interfaces from MySQL database",
-	"author": "Erwin Stone <erwinstone@pm.me>",
+	"author": "Alisson Cavalcante Agiani <alisson@riseworks.io>",
 	"license": "MIT",
-	"repository": "git@github.com:erwinstone/mysql-zod.git",
+	"repository": "git@github.com:riseworks/zod-mysql.git",
 	"main": "dist/main.js",
 	"types": "dist/main.d.ts",
 	"files": ["dist"],
 	"scripts": {
-		"build": "esbuild src/main.ts --format=esm --platform=node --outfile=dist/main.js --minify && tsc src/main.ts -d --emitDeclarationOnly --esModuleInterop --outDir dist",
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix"
+		"build": "esbuild src/main.ts --format=esm --platform=node --outfile=dist/main.js --minify && tsc src/main.ts -d --emitDeclarationOnly --esModuleInterop --outDir dist"
 	},
 	"dependencies": {
-		"camelcase": "^7.0.1",
+		"camelcase": "^8.0.0",
 		"fs-extra": "^11.1.1",
-		"knex": "^2.5.0",
-		"mysql2": "^3.5.1"
+		"knex": "^3.0.1",
+		"mysql2": "^3.6.3"
 	},
 	"devDependencies": {
-		"@antfu/eslint-config": "^0.39.7",
-		"@types/fs-extra": "^11.0.1",
-		"@types/node": "^20.4.1",
-		"esbuild": "^0.18.11",
-		"eslint": "^8.44.0",
-		"typescript": "^5.1.6",
-		"zod": "^3.21.4"
+		"@types/fs-extra": "^11.0.3",
+		"esbuild": "^0.19.5",
+		"typescript": "^5.2.2"
 	}
 }
